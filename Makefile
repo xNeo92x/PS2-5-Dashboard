@@ -4,8 +4,12 @@
 MODE ?= 480p
 DIAG := 0
 DEMO := 0
+DIRECT720 := 0
 DIAG_VIDEO := 0
 ifeq ($(MODE),720p)
+  HIRES := 0
+  DIRECT720 := 1
+else ifeq ($(MODE),720p-hires)
   HIRES := 1
 else ifeq ($(MODE),480p)
   HIRES := 0
@@ -25,7 +29,7 @@ else ifeq ($(MODE),diag480p)
   DIAG := 1
   DIAG_VIDEO := 2
 else
-  $(error Unknown MODE. Use diag480i, diag576i, diag480p, demo480p, 480p or 720p)
+  $(error Unknown MODE. Use diag480i, diag576i, diag480p, demo480p, 480p, 720p or 720p-hires)
 endif
 
 # Allow native tests/cleanup without having the MIPS compiler installed.
@@ -53,7 +57,7 @@ else
   SRCS := $(filter-out src/diag.c,$(wildcard src/*.c))
 endif
 EE_OBJS := $(patsubst src/%.c,build/$(MODE)/%.o,$(SRCS))
-EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO)
+EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_DIRECT720=$(DIRECT720) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO)
 EE_INCS += -I$(GSKIT)/include -I$(PS2SDK)/ports/include
 EE_LDFLAGS += -L$(GSKIT)/lib -L$(PS2SDK)/ports/lib
 EE_LIBS += -lgskit -ldmakit -lpad -lm
@@ -69,11 +73,13 @@ include $(PS2SDK)/samples/Makefile.eeglobal
 endif
 endif
 
-.PHONY: clean test 480p 720p diagnostics demo
+.PHONY: clean test 480p 720p 720p-hires diagnostics demo
 480p:
 	$(MAKE) MODE=480p all
 720p:
 	$(MAKE) MODE=720p all
+720p-hires:
+	$(MAKE) MODE=720p-hires all
 diagnostics:
 	$(MAKE) MODE=diag480i all
 	$(MAKE) MODE=diag576i all
@@ -84,5 +90,7 @@ test:
 	@mkdir -p build/host
 	cc -std=c99 -O2 -Wall -Wextra -pedantic -Isrc tests/catalog_test.c src/catalog.c -o build/host/catalog_test
 	./build/host/catalog_test
+	cc -std=c99 -O2 -Wall -Wextra -pedantic -Isrc tests/text_layout_test.c src/text_layout.c -o build/host/text_layout_test
+	./build/host/text_layout_test
 clean:
 	rm -rf build dist
