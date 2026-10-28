@@ -5,6 +5,32 @@
 #include <gsKit.h>
 #include <dmaKit.h>
 #include <stdio.h>
+#if PS25_DIAG_PAD
+#include <sifrpc.h>
+#include <loadfile.h>
+#include <libpad.h>
+static unsigned char s_pad_dma[256] __attribute__((aligned(64)));
+static int s_pad_open;
+static int s_pad_read;
+static void pad_boot(void)
+{
+    SifInitRpc(0);
+    /* Driver names match the known working PS25 dashboard. No MC access. */
+    SifLoadModule("rom0:SIO2MAN",0,NULL);
+    SifLoadModule("rom0:PADMAN",0,NULL);
+    if (padInit(0))
+        s_pad_open=padPortOpen(0,0,s_pad_dma)!=0;
+}
+static void pad_poll(void)
+{
+    struct padButtonStatus report;
+    int state;
+    if (!s_pad_open) return;
+    state=padGetState(0,0);
+    if (state==PAD_STATE_STABLE || state==PAD_STATE_FINDCTP1)
+        if (padRead(0,0,&report)) s_pad_read=1;
+}
+#endif
 
 #ifndef PS25_DIAG_VIDEO
 #define PS25_DIAG_VIDEO 0
@@ -14,6 +40,9 @@ int main(int argc,char **argv)
 {
     GSGLOBAL *gs;
     int w,h;
+#if PS25_DIAG_PAD
+    int frames=0;
+#endif
     u64 colors[6],white,black;
     (void)argc;
     (void)argv;
@@ -87,6 +116,15 @@ int main(int argc,char **argv)
     black=GS_SETREG_RGBAQ(5,14,33,0x80,0);
     for(;;) {
         int i;
+#if PS25_DIAG_PAD
+        /* The Retro GEM observes PS2 controller communication. Our original
+           video-only diagnostics NEVER polled the pad, so their OSD hotkey
+           might not work. Give the GS two displayed frames first; then
+           initialize PADMAN once and poll the controller every frame. */
+        if (frames==2) pad_boot();
+        if (frames>=2) pad_poll();
+        if (frames<3) frames++;
+#endif
         /* Six colored horizontal bars must all be visible, including
            the GREEN bar at the VERY BOTTOM. No text or complex assets. */
         gsKit_clear(gs,black);
@@ -99,6 +137,12 @@ int main(int argc,char **argv)
         gsKit_prim_sprite(gs,18,18,32,h-18,1,white);
         gsKit_prim_sprite(gs,w-32,18,w-18,h-18,1,white);
         gsKit_prim_sprite(gs,w/2-26,h/2-26,w/2+26,h/2+26,1,white);
+#if PS25_DIAG_PAD
+        /* Pad indicator at top: orange = no valid read yet, green = valid
+           controller reports received. Diagnostic colored stripes unaffected. */
+        gsKit_prim_sprite(gs,48,20,110,50,1,
+            s_pad_read?colors[5]:colors[3]);
+#endif
         gsKit_queue_exec(gs);
         gsKit_sync_flip(gs);
     }
