@@ -344,3 +344,53 @@ parameters, such as **Video → Shift/Crop → Vertical height** (a Retro GEM
 installer specifically documents this as a workaround for some PS2 720p
 FMV display issues). Do not update firmware or modify the HDMI board for
 this experiment.
+
+
+## Important cross-project finding: SM64 PS2 HD fix (#82 / PR #118)
+
+The issue [fgsfdsfgs/sm64-port #82](https://github.com/fgsfdsfgs/sm64-port/issues/82)
+reports the same basic symptom: a reliable 480p PS2 build, but native 720p
+with image corruption. In January 2026,
+[freshollie's HD patch #118](https://github.com/fgsfdsfgs/sm64-port/pull/118)
+was tested by multiple owners on real PS2 hardware and supports 720p/1080i.
+
+**What the successful patch actually does (and what differs from ours):**
+
+- Switches 720p to `gsKit_hires_init_screen(..., 2)` with **two passes**
+  instead of our legacy 3-pass HIRES experiment. Uses 16-bit `GS_PSM_CT16`.
+- Calls `gsKit_hires_flip_ext(..., GSFLIP_RATE_LIMIT_2)` to synchronize at
+  30 fps, **without the separate `gsKit_hires_sync` call** we previously used.
+  This API was introduced in [gsKit PR #97](https://github.com/ps2dev/gsKit/pull/97),
+  now merged upstream.
+- Removes a mistaken `strips++` in **SM64's custom clear routine**, which
+  otherwise draws one extra 64-pixel band off the right side. Its author said
+  this was a major source of horizontal artifacts at high resolutions.
+  Our project never had that exact bug; our new HIRES path nonetheless
+  clears using exactly twenty 64-pixel strips (`20 * 64 == 1280`).
+- Disables SM64-specific scissoring for high-resolution rendering and fixes
+  SM64's texture-pointer placement. Our UI uses *no textures or custom
+  scissor commands*, so these particular game-specific changes do not apply.
+- SM64 reports difficulty starting from OPL unless its IOP drivers are
+  restricted. Our own boot-loader findings point to a separate, related
+  launcher-environment concern; these are not proof of the same root cause.
+
+**Two new experimental ELFs:**
+
+| File | Purpose |
+| --- | --- |
+| `PS25-720p-hires2.ELF` | Full dashboard with SM64-style 2-pass 16-bit HIRES renderer and rate-limited flip, including controller support |
+| `PS25-probe720p-hires2.ELF` | Automatic 3-stage colorbar / UI-shapes / UI-text test with the *same* 2-pass renderer and no controller initialization |
+
+The original `PS25-720p-hires.ELF` remains as the **old 3-pass baseline**.
+`PS25-720p.ELF` remains the **direct double-buffered** baseline. We do
+not yet claim the SM64-inspired two-pass renderer fixes this specific
+PS2 Fat + Retro GEM Shiny. Only a real-hardware test can establish that.
+
+**Recommended next step:** from the known-good FMCB-installed uLaunchELF,
+launch **`PS25-720p-hires2.ELF`** (NOT `PS25-720p-hires.ELF`).
+Leave the Retro GEM at 1080p60 and choose 1.500x zoom if the menu can be
+opened. Check full bottom region as well as text. Avoid saving a broken GEM
+profile and preserve the known-good 480p ELF on your USB stick.
+
+The SM64 work is valuable engineering prior art. No SM64 gameplay assets
+or SM64 source code have been copied into this dashboard.
