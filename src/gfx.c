@@ -48,7 +48,7 @@ int gfx_init(Gfx *g)
     g->gs->Interlace = GS_NONINTERLACED;
     g->gs->Field = GS_FRAME;
     g->gs->Dithering = GS_SETTING_ON;
-    g->gs->DoubleBuffering = GS_SETTING_ON;
+    g->gs->DoubleBuffering = PS25_SINGLE720 ? GS_SETTING_OFF : GS_SETTING_ON;
     g->gs->ZBuffering = GS_SETTING_OFF;
     g->gs->PrimAlphaEnable = GS_SETTING_ON;
 #if PS25_HIRES
