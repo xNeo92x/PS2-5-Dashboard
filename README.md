@@ -301,3 +301,46 @@ and `diag720p-double` were "clean" was based on a cropped 2.000x view.
 At least the bottom two of six bars were outside the screen, so
 the lower part of both 720p diagnostic images remains *unverified*.
 A 2.000x crop can hide corruption below the visible region.
+
+## 720p visible-image corruption at lower GEM zoom (follow-up)
+
+The colorbar diagnostic with PAD polling confirmed the issue appears **as soon
+as the PixelFX Retro GEM Shiny zoom is reduced below 2.000**. At 2.000 only
+part of the bottom green bar may be visible; the missing/corrupt region must
+not be considered tested. This also happens in a minimal GS-only drawing test,
+so the dashboard typography is **not** the root cause.
+
+The upstream gsKit [modetest](https://github.com/ps2dev/gsKit/blob/master/examples/modetest/modetest.c)
+uses **1280x698** in its 720p configuration, rather than 1280x720,
+while an older gsKit basic/vsync example explicitly warns that 720-line
+framebuffers may behave poorly. This is a **lead for testing**, not yet
+proof of a fix.
+
+The following new ELF files use the SAME 720p video mode but change the
+number of allocated and displayed GS framebuffer lines. All four enable
+controller polling, so the Retro GEM OSD shortcut can be used.
+
+| File | Width x framebuffer height | GS buffers | Test objective |
+| --- | --- | --- | --- |
+| `PS25-diag720p-698.ELF` | 1280x698 | 1 | Follow gsKit's 720p modetest active height |
+| `PS25-diag720p-704.ELF` | 1280x704 | 1 | End exactly at a full 16-bit GS 64-line page |
+| `PS25-diag720p-640.ELF` | 1280x640 | 1 | Test whether corruption starts above line 640 |
+| `PS25-diag720p-480.ELF` | 1280x480 | 1 | Compare a short 480-line framebuffer under 720p timing |
+
+Each draws **six bars spanning only its configured framebuffer height**.
+The remaining lines outside that shorter area may appear as a border or
+uninitialized content; this does not automatically mean the 6-color test
+failed. Look at the colored area itself, especially the lowest green bar and
+two white vertical lines. With shorter heights, a thin solid-color border
+outside the image is expected.
+
+**Suggested order:** 698, 704, 640; use 480 only if required. Run each
+through the known-good Free-MCBoot uLaunchELF and try Retro GEM zoom
+`1.500 / 1.500`, without permanently changing the working profile.
+If 698 is clean where 720 is corrupt, that is strong evidence for a GS
+720-line framebuffer/scanout edge issue. If all heights fail only when the
+GEM zoom exposes more of the image, inspect the GEM's capture and scaling
+parameters, such as **Video → Shift/Crop → Vertical height** (a Retro GEM
+installer specifically documents this as a workaround for some PS2 720p
+FMV display issues). Do not update firmware or modify the HDMI board for
+this experiment.
