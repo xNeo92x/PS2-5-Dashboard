@@ -7,6 +7,7 @@ DIAG := 0
 DEMO := 0
 DIRECT720 := 0
 SINGLE720 := 0
+PROBE := 0
 DIAG_VIDEO := 0
 ifeq ($(MODE),720p)
   HIRES := 0
@@ -15,6 +16,11 @@ else ifeq ($(MODE),720p-single)
   HIRES := 0
   DIRECT720 := 1
   SINGLE720 := 1
+else ifeq ($(MODE),probe720p)
+  HIRES := 0
+  DIRECT720 := 1
+  DEMO := 1
+  PROBE := 1
 else ifeq ($(MODE),720p-hires)
   HIRES := 1
 else ifeq ($(MODE),480p)
@@ -83,7 +89,7 @@ else
   SRCS := $(filter-out src/diag.c,$(wildcard src/*.c))
 endif
 EE_OBJS := $(patsubst src/%.c,build/$(MODE)/%.o,$(SRCS))
-EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_DIRECT720=$(DIRECT720) -DPS25_SINGLE720=$(SINGLE720) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO)
+EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_DIRECT720=$(DIRECT720) -DPS25_SINGLE720=$(SINGLE720) -DPS25_PROBE=$(PROBE) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO)
 EE_INCS += -I$(GSKIT)/include -I$(PS2SDK)/ports/include
 EE_LDFLAGS += -L$(GSKIT)/lib -L$(PS2SDK)/ports/lib
 EE_LIBS += -lgskit -ldmakit -lpad -lm
@@ -99,12 +105,14 @@ include $(PS2SDK)/samples/Makefile.eeglobal
 endif
 endif
 
-.PHONY: clean test 480p 720p 720p-single 720p-hires diagnostics demo
+.PHONY: clean test 480p 720p probe720p 720p-single 720p-hires diagnostics demo
 480p:
 	$(MAKE) MODE=480p all
 720p:
 	$(MAKE) MODE=720p all
 
+probe720p:
+	$(MAKE) MODE=probe720p all
 720p-single:
 	$(MAKE) MODE=720p-single all
 720p-hires:
