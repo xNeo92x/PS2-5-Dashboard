@@ -18,6 +18,16 @@ ifndef PS2SDK
 endif
 GSKIT ?= $(PS2DEV)/gsKit
 
+# The PS2SDK sample rules use EE_CC and MKDIR but do not initialize them.
+# Without these values, make silently interprets '-D_EE' and '-p' as
+# ignore-errors recipe prefixes and can report success without an ELF.
+EE_CC := mips64r5900el-ps2-elf-gcc
+MKDIR := mkdir
+
+ifeq ($(shell command -v $(EE_CC) 2>/dev/null),)
+  $(error PS2 cross-compiler not found: $(EE_CC). Check PS2DEV/PATH or use the official ps2dev container)
+endif
+
 EE_BIN := dist/PS25-$(MODE).ELF
 SRCS := $(wildcard src/*.c)
 EE_OBJS := $(patsubst src/%.c,build/$(MODE)/%.o,$(SRCS))
