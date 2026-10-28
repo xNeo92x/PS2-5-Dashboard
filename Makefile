@@ -62,6 +62,26 @@ else ifeq ($(MODE),diag720p-rgb32)
   HIRES := 0
   DIAG := 1
   DIAG_VIDEO := 6
+else ifeq ($(MODE),diag720p-698)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 8
+  DIAG_PAD := 1
+else ifeq ($(MODE),diag720p-704)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 9
+  DIAG_PAD := 1
+else ifeq ($(MODE),diag720p-640)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 10
+  DIAG_PAD := 1
+else ifeq ($(MODE),diag720p-480)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 11
+  DIAG_PAD := 1
 else ifeq ($(MODE),diag720p-16s)
   HIRES := 0
   DIAG := 1
@@ -131,6 +151,10 @@ diagnostics:
 	$(MAKE) MODE=diag720p-single all
 	$(MAKE) MODE=diag720p-double all
 	$(MAKE) MODE=diag720p-double-pad all
+	$(MAKE) MODE=diag720p-698 all
+	$(MAKE) MODE=diag720p-704 all
+	$(MAKE) MODE=diag720p-640 all
+	$(MAKE) MODE=diag720p-480 all
 	$(MAKE) MODE=diag720p-rgb32 all
 	$(MAKE) MODE=diag720p-16s all
 demo:
