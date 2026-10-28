@@ -16,7 +16,7 @@ int main(void)
     ps25_fit_text(b,sizeof(b),"abc",0.f,100.f);
     assert(!*b);
     ps25_fit_text(b,4,"TEST LONG NAME",1.f,1000.f);
-    assert(!strcmp(b,"TES"));
+    assert(!strcmp(b,"..."));
     ps25_fit_text(b,sizeof(b),NULL,3.f,100.f);
     assert(!*b);
     printf("text layout tests passed\n");
