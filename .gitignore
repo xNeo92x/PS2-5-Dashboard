@@ -1,0 +1,6 @@
+build/
+dist/
+*.o
+*.elf
+*.ELF
+.DS_Store
