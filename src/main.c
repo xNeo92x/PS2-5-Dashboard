@@ -23,9 +23,13 @@ static void init_input(void)
     /* Module may already be resident; failures are not fatal to video. */
     SifLoadModule("rom0:SIO2MAN",0,NULL);
     SifLoadModule("rom0:PADMAN",0,NULL);
+    if(padInit(0)) pad_available=padPortOpen(0,0,pad_buffer)!=0;
+}
+
+static void init_memory_cards(void)
+{
     SifLoadModule("rom0:MCMAN",0,NULL);
     SifLoadModule("rom0:MCSERV",0,NULL);
-    if(padInit(0)) pad_available=padPortOpen(0,0,pad_buffer)!=0;
 }
 
 static unsigned int read_input(void)
@@ -82,20 +86,31 @@ int main(int argc,char **argv)
     const char *launch=0;
     (void)argc;(void)argv;
 
-    init_input();
     ui_init(&dash);
-    load_catalog_file(&dash);
     if(!gfx_init(&gfx)) {
         printf("PS25: GS initialization failed\n");
         return 1;
     }
+    /* Render before touching the IOP. A visible screen isolates pad/MC issues. */
+    ui_toast(&dash,"VIDEO INITIALIZED");
+    ui_render(&gfx,&dash);
+    dash.frame++;
+#if !PS25_DEMO
+    ui_toast(&dash,"INITIALIZING CONTROLLER");
+    ui_render(&gfx,&dash);
+    dash.frame++;
+    init_input();
+    ui_toast(&dash,"SQUARE: LOAD MEMORY CARD CATALOG");
+#else
+    ui_toast(&dash,"DEMO: NO IOP OR MEMORY CARD ACCESS");
+#endif
 #if PS25_HIRES
     printf("PS25: experimental REAL-HARDWARE 720p hires multipass\n");
 #else
     printf("PS25: safe 480p video mode\n");
 #endif
     while(1){
-        held=read_input();
+        held=PS25_DEMO ? 0 : read_input();
         pressed=held & ~previous;
         if((held & (PAD_LEFT|PAD_RIGHT)) &&
            ((held & (PAD_LEFT|PAD_RIGHT))==
@@ -105,6 +120,14 @@ int main(int argc,char **argv)
                 pressed|=(held & (PAD_LEFT|PAD_RIGHT));
         } else directional_frames=0;
         previous=held;
+        if(!PS25_DEMO && (pressed & PAD_SQUARE)) {
+            ui_toast(&dash,"READING MEMORY CARD");
+            ui_render(&gfx,&dash);
+            dash.frame++;
+            init_memory_cards();
+            if(load_catalog_file(&dash)) ui_toast(&dash,"CATALOG LOADED");
+            else ui_toast(&dash,"NO CATALOG CONFIG ON MC0 / MC1");
+        }
         ui_action(&dash,pressed,held,&quit,&launch);
         if(quit) {
             ExecOSD(0,NULL);
