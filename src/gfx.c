@@ -23,11 +23,20 @@ int gfx_init(Gfx *g)
     if (!g->gs) return 0;
 
 #if PS25_HIRES
+    /* Legacy HIRES three-pass mode kept for A/B diagnostics. */
     g->gs->Mode = GS_MODE_DTV_720P;
     g->gs->Width = 1280;
     g->gs->Height = 720;
     g->gs->PSM = GS_PSM_CT16S;
     g->gs->PSMZ = GS_PSMZ_16S;
+#elif PS25_DIRECT720
+    /* Standard GS double-buffered 720p: 2 * 1280 * aligned(720,64) * 2
+       = 3.75 MiB. No texture RAM or Z-buffer required. */
+    g->gs->Mode = GS_MODE_DTV_720P;
+    g->gs->Width = 1280;
+    g->gs->Height = 720;
+    g->gs->PSM = GS_PSM_CT16;
+    g->gs->PSMZ = GS_PSMZ_16;
 #else
     /* Separate, conventional 480p build: useful for PCSX2 and recovery. */
     g->gs->Mode = GS_MODE_DTV_480P;
@@ -63,7 +72,13 @@ u64 gfx_rgba(int r, int g, int b, int a)
 
 void gfx_begin(Gfx *g)
 {
+#if PS25_HIRES
+    /* gsKit HIRES pass queues already clear each pass. Avoid queuing
+       another full-screen clear in its timing-critical draw queue. */
+    (void)g;
+#else
     gsKit_clear(g->gs, gfx_rgba(3, 9, 23, 128));
+#endif
 }
 
 void gfx_end(Gfx *g)
