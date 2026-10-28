@@ -1,7 +1,7 @@
 /* PS2-5 standalone GS signal/memory diagnostic.
    No controller, SIF/IOP modules, filesystem, disk reads or disk writes.
    Continues drawing forever; terminate with the PS2 reset button.
-   Modes 3-7 test 720p output with different framebuffer configurations. */
+   Modes 3-11 test 720p output with different framebuffer configurations. */
 #include <gsKit.h>
 #include <dmaKit.h>
 #include <stdio.h>
@@ -75,6 +75,18 @@ int main(int argc,char **argv)
 #if PS25_DIAG_VIDEO == 3
     /* Deliberate 640x360 framebuffer magnified 2x by the 720p CRTC. */
     w=640; h=360;
+#elif PS25_DIAG_VIDEO == 8
+    /* The official gsKit modetest uses a visible 698-line 720p image. */
+    w=1280; h=698;
+#elif PS25_DIAG_VIDEO == 9
+    /* Last complete 16-bit 64-pixel GS page row before 720p. */
+    w=1280; h=704;
+#elif PS25_DIAG_VIDEO == 10
+    /* Progressive reduction to locate the first failing scanline region. */
+    w=1280; h=640;
+#elif PS25_DIAG_VIDEO == 11
+    /* Force 480 active lines at native 1280 horizontal size. */
+    w=1280; h=480;
 #else
     w=1280; h=720;
 #endif
@@ -125,8 +137,9 @@ int main(int argc,char **argv)
         if (frames>=2) pad_poll();
         if (frames<3) frames++;
 #endif
-        /* Six colored horizontal bars must all be visible, including
-           the GREEN bar at the VERY BOTTOM. No text or complex assets. */
+        /* Six colored horizontal bars occupy the configured *active* FB height.
+           On <720 configurations GS leaves some outside lines unfilled.
+           Green must be visible at the bottom of the colored active area. */
         gsKit_clear(gs,black);
         for(i=0;i<6;i++) {
             float top=(float)(i*h)/6;
