@@ -1,6 +1,7 @@
 # PS2-5 Dashboard / ps2dev + gsKit
 # make MODE=480p (default, PCSX2 compatible)
-# make MODE=720p (gsKit hires multipass, REAL PS2 ONLY)
+# make MODE=720p (standard 16-bit double-buffered 720p, GS eDRAM)
+# make MODE=720p-hires (legacy 3-pass mode; A/B diagnostics only)
 MODE ?= 480p
 DIAG := 0
 DEMO := 0
