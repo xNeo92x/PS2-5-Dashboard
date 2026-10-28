@@ -33,11 +33,12 @@ jobs:
           make demo
           make MODE=480p
           make MODE=720p
+          make MODE=720p-hires
       - name: Verify actual ELF output
         shell: sh
         run: |
           set -eu
-          for mode in diag480i diag576i diag480p demo480p 480p 720p; do
+          for mode in diag480i diag576i diag480p demo480p 480p 720p 720p-hires; do
             elf="dist/PS25-$mode.ELF"
             test -s "$elf"
             signature="$(od -An -tx1 -N4 "$elf" | tr -d ' \\n')"
