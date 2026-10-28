@@ -105,9 +105,11 @@ int main(int argc,char **argv)
     ui_toast(&dash,"DEMO: NO IOP OR MEMORY CARD ACCESS");
 #endif
 #if PS25_HIRES
-    printf("PS25: experimental REAL-HARDWARE 720p hires multipass\n");
+    printf("PS25: legacy experimental HIRES 720p multipass\n");
+#elif PS25_DIRECT720
+    printf("PS25: direct double-buffered 720p 16-bit (no HIRES)\n");
 #else
-    printf("PS25: safe 480p video mode\n");
+    printf("PS25: standard 480p video mode\n");
 #endif
     while(1){
         held=PS25_DEMO ? 0 : read_input();
