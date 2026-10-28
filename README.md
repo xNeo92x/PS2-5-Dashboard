@@ -211,3 +211,48 @@ This is intentionally a **diagnostic experiment**, not a claim that the
 issue is solved. Compile via `make diagnostics` and
 `make MODE=720p-single`, or download the GitHub Actions test artifact.
 Do not auto-start these files from PSBBN and do not alter the SATA SSD.
+
+## 720p zoom and framebuffer findings (real-hardware report)
+
+The Retro GEM Shiny OSD shows **1280x720p input** and **1080p60 output**. Its
+zoom multiplier can crop the captured source before output: 2.000x gives
+2560x1440 (cropped on a 1920x1080 output); 1.875x gives 2400x1350 (also
+cropped); **1.500x maps 1280x720 to 1920x1080**, with the whole frame visible.
+The zoom setting alone cannot prove corruption is created by the scaler: a
+cropped scene can appear clean while hiding garbage below the visible area.
+
+The owner reports the full-resolution **simple color-bar** diagnostics
+`PS25-diag720p-single.ELF` and `PS25-diag720p-double.ELF` appear correct,
+while the `PS25-diag720p-scaled.ELF` (640x360 magnified) is distorted.
+The dashboard at 720p single-buffering appears clean when zoomed-in but
+shows corruption when more of the screen is made visible. Until the *simple*
+test image is evaluated at the same zoom, we cannot distinguish scaler
+cropping from actual source framebuffer corruption.
+
+**Recommended next hardware test (do not save changes to a working GEM profile):**
+
+1. Run `PS25-diag720p-double.ELF` via the older FMCB uLaunchELF.
+2. In Retro GEM Scaler, switch to **1.500 / 1.500**, 16:9 and 1080p output.
+3. Check that **all six full-width horizontal bars are visible**, in
+   particular the **green bottom bar**; if distorted, take a photo. If
+   possible compare with 2.000 / 2.000 without changing anything else.
+4. Run **`PS25-probe720p.ELF`** at the same 1.500 zoom. It automatically
+   cycles through three stages, roughly every 420 frames:
+
+   - **White central square:** six colored bars, no UI or font.
+   - **Orange central square:** full UI *shapes*, all labels disabled.
+   - **Cyan central square:** full UI *with procedural text*.
+
+   This repeats. There is deliberately no controller/MC/IOP initialization.
+   Report the first stage that becomes corrupted and whether the bottom of
+   the picture is damaged. If colors are clean but only the full-font
+   stage glitches, investigate the GS draw queue and text primitive traffic.
+5. Exit the probe via the physical Reset button. Avoid treating a successful
+   ELF compilation as proof of video correctness.
+
+To compile the staged probe locally using the ps2dev toolchain:
+`make MODE=probe720p`. CI uploads it alongside the older test executables.
+
+The Retro GEM's OSD firmware version in the supplied photos is
+**3.15.25.4**; do not update firmware only to debug this problem without
+checking the official release notes and backing up your current profile.
