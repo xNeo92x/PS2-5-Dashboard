@@ -93,3 +93,46 @@ This project is an original design, not a port of **08Weber/psp5** (that program
 Created with assistance from **ChatGPT (OpenAI)**. Thanks to [ps2dev](https://github.com/ps2dev), [gsKit](https://github.com/ps2dev/gsKit), [CosmicScale's PSBBN Definitive Project](https://github.com/CosmicScale/PSBBN-Definitive-Project), [08Weber's psp5](https://github.com/08Weber/psp5), and [Free-BBN](https://github.com/jegesmedve09/Free-BBN) for their open community work.
 
 Code in this repository is MIT-licensed (see LICENSE). The project is **unofficial**, not sponsored or endorsed by Sony Interactive Entertainment. 'PS5' and 'PlayStation' are Sony trademarks. No Sony graphics, system files or proprietary SDK files are included.
+
+## Black screen / reboot: staged boot diagnostics
+
+The original two variants were reported to show a black screen and a reset on a
+real PS2 with Retro GEM Shiny. **These additional test executables are not proof
+that the issue is solved.** They isolate individual parts of startup.
+
+Test these files **in order** using wLaunchELF directly from a FAT32 USB stick
+(`mass:/`), **not** PSBBN's built-in app launcher or OPL, so we can exclude a
+launcher-specific reset.
+
+| ELF | Expected screen | Purpose |
+| --- | --- | --- |
+| `PS25-diag480i.ELF` | Blue background, orange rectangle, white bars | Basic interlaced NTSC video. NO pad, MC, IOP or filesystem |
+| `PS25-diag576i.ELF` | Blue background, orange rectangle, white bars | Same test with PAL video |
+| `PS25-diag480p.ELF` | Green/teal background, green rectangle, white bars | Basic 480p video, still without IOP |
+| `PS25-demo480p.ELF` | PS5-like dashboard, no controller input | Full procedural UI with **NO IOP/pad/MC** |
+| `PS25-480p.ELF` | Same dashboard, now with controller input | IOP and pad initialization; memory card loads only when Square is pressed |
+| `PS25-720p.ELF` | Experimental high-resolution dashboard | Advanced multipass scanout; test only after 480p works |
+
+The first three test pictures run indefinitely. **There is no automatic reset
+in these diagnostic binaries.** You must use the physical Reset button when
+done. The demo has no controller functionality by design; it also runs indefinitely.
+
+The full dashboard now shows its first frame **before** initializing any IOP
+drivers. For safety, the memory-card catalog is **not read at startup**: press
+**Square** if the basic dashboard and pad already work. If the last visible
+status says `INITIALIZING CONTROLLER` or `READING MEMORY CARD`, report this
+exactly.
+
+Compile all diagnostic and dashboard variants using:
+
+```sh
+make diagnostics
+make demo
+make MODE=480p
+make MODE=720p
+```
+
+Please report exactly which file showed colors, whether the picture stayed on
+screen, and whether the console visibly power-cycled/restarted or simply
+returned to the launcher. Do **not** overwrite the PSBBN SSD or install the
+experimental ELF as an autostart application.
