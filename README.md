@@ -160,3 +160,54 @@ experimental ELF as an autostart application.
 5. Do **not** auto-launch either build from PSBBN or replace your existing SATA SSD partition data.
 
 **Development branch:** `fix/boot-diagnostics-and-safe-init` (draft PR #3). This branch intentionally contains hardware diagnostics and UI changes that require user testing before merging into `main`.
+
+## 720p corruption isolation (hardware report: 28 October 2026)
+
+**The original 720p HIRES and the revised 720p direct double-buffered
+dashboard both exhibit repeated text and corrupted lower-screen image on the
+same PS2 Fat + PixelFX Retro GEM Shiny.** This disproves the working
+hypothesis that the HIRES scheduler *alone* caused the issue. Do not assume
+the native 720p dashboard is fixed.
+
+To isolate **video scanout vs. framebuffer memory layout vs. the complex UI**,
+the following minimal diagnostics draw only *six full-width horizontal
+colored bars*, two white vertical rails and one white middle square. No
+font/UI engine, memory-card access, IOP modules or application launcher is
+used. The **bottommost bar must be green**. All tests run indefinitely; use
+the physical PS2 Reset button to exit.
+
+**Test in the following order, using the older Free-MCBoot uLaunchELF that
+successfully starts the working 480p dashboard:**
+
+| ELF | GS framebuffer | Purpose |
+| --- | --- | --- |
+| `PS25-diag720p-scaled.ELF` | 640x360, 16-bit, single | 720p output timing with cheap 2x GS display magnification |
+| `PS25-diag720p-single.ELF` | 1280x720, 16-bit, single | Native pixels without double buffering (~1.875 MiB aligned) |
+| `PS25-diag720p-double.ELF` | 1280x720, 16-bit, double | Native pixels, two full framebuffers (~3.75 MiB aligned) |
+
+**Optional diagnostic variants** if required to isolate GS pixel memory layout:
+
+| ELF | GS framebuffer | Purpose |
+| --- | --- | --- |
+| `PS25-diag720p-16s.ELF` | 1280x720, CT16S, single | Test swizzled 16S layout |
+| `PS25-diag720p-rgb32.ELF` | 1280x720, CT32, single | Test 32-bit GS framebuffer (~3.59 MiB aligned) |
+
+A separate `PS25-720p-single.ELF` runs the complete dashboard with a
+**single** 16-bit framebuffer. Do not run it until the simpler 720p bars are
+known to work, and keep the proven 480p version as fallback.
+
+**How to interpret the result:**
+
+- If even `diag720p-scaled` is distorted, investigate the 720p signal path,
+  mode registers and PixelFX firmware/scaling settings before tuning the UI.
+- If scaled is clean but 1280x720 single is corrupted, the problem follows
+  the full-resolution GS framebuffer rather than 720p output alone.
+- If single is clean but double is corrupted, inspect the second buffer
+  address, GS memory allocation and display-buffer flip.
+- If all the simple diagnostics look clean but the full dashboard does not,
+  investigate primitive queue usage, alpha blending and text rendering.
+
+This is intentionally a **diagnostic experiment**, not a claim that the
+issue is solved. Compile via `make diagnostics` and
+`make MODE=720p-single`, or download the GitHub Actions test artifact.
+Do not auto-start these files from PSBBN and do not alter the SATA SSD.
