@@ -6,10 +6,15 @@ MODE ?= 480p
 DIAG := 0
 DEMO := 0
 DIRECT720 := 0
+SINGLE720 := 0
 DIAG_VIDEO := 0
 ifeq ($(MODE),720p)
   HIRES := 0
   DIRECT720 := 1
+else ifeq ($(MODE),720p-single)
+  HIRES := 0
+  DIRECT720 := 1
+  SINGLE720 := 1
 else ifeq ($(MODE),720p-hires)
   HIRES := 1
 else ifeq ($(MODE),480p)
@@ -29,6 +34,26 @@ else ifeq ($(MODE),diag480p)
   HIRES := 0
   DIAG := 1
   DIAG_VIDEO := 2
+else ifeq ($(MODE),diag720p-scaled)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 3
+else ifeq ($(MODE),diag720p-single)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 4
+else ifeq ($(MODE),diag720p-double)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 5
+else ifeq ($(MODE),diag720p-rgb32)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 6
+else ifeq ($(MODE),diag720p-16s)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 7
 else
   $(error Unknown MODE. Use diag480i, diag576i, diag480p, demo480p, 480p, 720p or 720p-hires)
 endif
@@ -58,7 +83,7 @@ else
   SRCS := $(filter-out src/diag.c,$(wildcard src/*.c))
 endif
 EE_OBJS := $(patsubst src/%.c,build/$(MODE)/%.o,$(SRCS))
-EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_DIRECT720=$(DIRECT720) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO)
+EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_DIRECT720=$(DIRECT720) -DPS25_SINGLE720=$(SINGLE720) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO)
 EE_INCS += -I$(GSKIT)/include -I$(PS2SDK)/ports/include
 EE_LDFLAGS += -L$(GSKIT)/lib -L$(PS2SDK)/ports/lib
 EE_LIBS += -lgskit -ldmakit -lpad -lm
@@ -74,17 +99,25 @@ include $(PS2SDK)/samples/Makefile.eeglobal
 endif
 endif
 
-.PHONY: clean test 480p 720p 720p-hires diagnostics demo
+.PHONY: clean test 480p 720p 720p-single 720p-hires diagnostics demo
 480p:
 	$(MAKE) MODE=480p all
 720p:
 	$(MAKE) MODE=720p all
+
+720p-single:
+	$(MAKE) MODE=720p-single all
 720p-hires:
 	$(MAKE) MODE=720p-hires all
 diagnostics:
 	$(MAKE) MODE=diag480i all
 	$(MAKE) MODE=diag576i all
 	$(MAKE) MODE=diag480p all
+	$(MAKE) MODE=diag720p-scaled all
+	$(MAKE) MODE=diag720p-single all
+	$(MAKE) MODE=diag720p-double all
+	$(MAKE) MODE=diag720p-rgb32 all
+	$(MAKE) MODE=diag720p-16s all
 demo:
 	$(MAKE) MODE=demo480p all
 test:
