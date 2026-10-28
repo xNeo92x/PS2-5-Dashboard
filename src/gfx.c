@@ -42,7 +42,6 @@ int gfx_init(Gfx *g)
     g->gs->DoubleBuffering = GS_SETTING_ON;
     g->gs->ZBuffering = GS_SETTING_OFF;
     g->gs->PrimAlphaEnable = GS_SETTING_ON;
-    g->gs->DoSubOffset = GS_SETTING_OFF;
 #if PS25_HIRES
     /* gsKit's high-resolution multipass scanout; REAL PS2 only. */
     gsKit_hires_init_screen(g->gs, 3);
