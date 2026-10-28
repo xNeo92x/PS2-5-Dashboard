@@ -2,12 +2,30 @@
 # make MODE=480p (default, PCSX2 compatible)
 # make MODE=720p (gsKit hires multipass, REAL PS2 ONLY)
 MODE ?= 480p
+DIAG := 0
+DEMO := 0
+DIAG_VIDEO := 0
 ifeq ($(MODE),720p)
   HIRES := 1
 else ifeq ($(MODE),480p)
   HIRES := 0
+else ifeq ($(MODE),demo480p)
+  HIRES := 0
+  DEMO := 1
+else ifeq ($(MODE),diag480i)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 0
+else ifeq ($(MODE),diag576i)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 1
+else ifeq ($(MODE),diag480p)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 2
 else
-  $(error MODE must be 480p or 720p)
+  $(error Unknown MODE. Use diag480i, diag576i, diag480p, demo480p, 480p or 720p)
 endif
 
 # Allow native tests/cleanup without having the MIPS compiler installed.
@@ -29,9 +47,13 @@ ifeq ($(shell command -v $(EE_CC) 2>/dev/null),)
 endif
 
 EE_BIN := dist/PS25-$(MODE).ELF
-SRCS := $(wildcard src/*.c)
+ifeq ($(DIAG),1)
+  SRCS := src/diag.c
+else
+  SRCS := $(filter-out src/diag.c,$(wildcard src/*.c))
+endif
 EE_OBJS := $(patsubst src/%.c,build/$(MODE)/%.o,$(SRCS))
-EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES)
+EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO)
 EE_INCS += -I$(GSKIT)/include -I$(PS2SDK)/ports/include
 EE_LDFLAGS += -L$(GSKIT)/lib -L$(PS2SDK)/ports/lib
 EE_LIBS += -lgskit -ldmakit -lpad -lm
@@ -47,11 +69,17 @@ include $(PS2SDK)/samples/Makefile.eeglobal
 endif
 endif
 
-.PHONY: clean test 480p 720p
+.PHONY: clean test 480p 720p diagnostics demo
 480p:
 	$(MAKE) MODE=480p all
 720p:
 	$(MAKE) MODE=720p all
+diagnostics:
+	$(MAKE) MODE=diag480i all
+	$(MAKE) MODE=diag576i all
+	$(MAKE) MODE=diag480p all
+demo:
+	$(MAKE) MODE=demo480p all
 test:
 	@mkdir -p build/host
 	cc -std=c99 -O2 -Wall -Wextra -pedantic -Isrc tests/catalog_test.c src/catalog.c -o build/host/catalog_test
