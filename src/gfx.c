@@ -23,12 +23,12 @@ int gfx_init(Gfx *g)
     if (!g->gs) return 0;
 
 #if PS25_HIRES
-    /* Legacy HIRES three-pass mode kept for A/B diagnostics. */
+    /* 2-pass follows the tested SM64 HD design; 3-pass is legacy diagnostic. */
     g->gs->Mode = GS_MODE_DTV_720P;
     g->gs->Width = 1280;
     g->gs->Height = 720;
-    g->gs->PSM = GS_PSM_CT16S;
-    g->gs->PSMZ = GS_PSMZ_16S;
+    g->gs->PSM = (PS25_HIRES_PASSES == 2) ? GS_PSM_CT16 : GS_PSM_CT16S;
+    g->gs->PSMZ = (PS25_HIRES_PASSES == 2) ? GS_PSMZ_16 : GS_PSMZ_16S;
 #elif PS25_DIRECT720
     /* Standard GS double-buffered 720p: 2 * 1280 * aligned(720,64) * 2
        = 3.75 MiB. No texture RAM or Z-buffer required. */
@@ -53,7 +53,7 @@ int gfx_init(Gfx *g)
     g->gs->PrimAlphaEnable = GS_SETTING_ON;
 #if PS25_HIRES
     /* gsKit's high-resolution multipass scanout; REAL PS2 only. */
-    gsKit_hires_init_screen(g->gs, 3);
+    gsKit_hires_init_screen(g->gs, PS25_HIRES_PASSES);
 #else
     gsKit_init_screen(g->gs);
 #endif
@@ -73,9 +73,14 @@ u64 gfx_rgba(int r, int g, int b, int a)
 void gfx_begin(Gfx *g)
 {
 #if PS25_HIRES
-    /* gsKit HIRES pass queues already clear each pass. Avoid queuing
-       another full-screen clear in its timing-critical draw queue. */
-    (void)g;
+    /* HIRES queues must use primitives for background clearing. Use
+       exactly 1280/64 stripes: sm64-port #118 fixed an extra
+       "strips++" drawing outside the valid horizontal framebuffer.
+       No offscreen strip is ever drawn. */
+    for (int i=0; i<20; ++i)
+        gsKit_prim_sprite(g->gs, (float)(i*64), 0,
+                          (float)((i+1)*64), 720.0f, 0,
+                          gfx_rgba(3, 9, 23, 128));
 #else
     gsKit_clear(g->gs, gfx_rgba(3, 9, 23, 128));
 #endif
@@ -84,8 +89,15 @@ void gfx_begin(Gfx *g)
 void gfx_end(Gfx *g)
 {
 #if PS25_HIRES
+#if PS25_HIRES_PASSES == 2
+    /* sm64-port PR #118: rate-limited 2-pass GS frame flip.
+       gsKit_hires_flip_ext exists in upstream gsKit PR #97 (merged).
+       Do not call gsKit_hires_sync separately in this mode. */
+    gsKit_hires_flip_ext(g->gs, GSFLIP_RATE_LIMIT_2);
+#else
     gsKit_hires_sync(g->gs);
     gsKit_hires_flip(g->gs);
+#endif
 #else
     gsKit_queue_exec(g->gs);
     gsKit_sync_flip(g->gs);
