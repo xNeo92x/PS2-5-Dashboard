@@ -16,6 +16,10 @@
 #define ACCENT C(83,180,250,128)
 #define NAVY C(3,11,28,128)
 
+#if PS25_PROBE
+static int probe_hide_text;
+#endif
+
 static const char *tabs[3]={"GAMES","APPS","SYSTEM"};
 static const char *sysitems[3]={"ABOUT","CONTROLS","EXIT TO BROWSER"};
 static const unsigned char tones[6][3]={
@@ -37,6 +41,9 @@ static const char *title_for(const Dashboard *d,int tab,int pos)
 static void txt(Gfx *g,float x,float y,float sz,u64 c,const char *s,float max_width)
 {
     char b[100];
+#if PS25_PROBE
+    if(probe_hide_text) return;
+#endif
     ps25_fit_text(b,sizeof(b),s,sz,max_width);
     font_text(g,x,y,sz,c,b);
 }
@@ -238,6 +245,29 @@ void ui_toast(Dashboard *d,const char *message)
 }
 void ui_render(Gfx *g,const Dashboard *d)
 {
+#if PS25_PROBE
+    /* Self-advancing hardware isolation test. One mode per 420 frames.
+       0 = geometry-free six-color scanout; 1 = all dashboard primitives
+       without text; 2 = complete dashboard with procedural glyphs.
+       No pad, IOP, MC or SSD access when built with PS25_DEMO=1.
+       Visual marker in the center top: white/orange/cyan. */
+    int stage=(d->frame/420)%3;
+    if(stage==0) {
+        static const int color[6][3]={
+            {17,52,118},{33,112,213},{34,157,146},
+            {233,143,27},{112,50,189},{32,189,67}
+        };
+        gfx_begin(g);
+        for(int i=0;i<6;i++)
+            gfx_rect(g,0,i*120,1280,120,C(color[i][0],color[i][1],color[i][2],128));
+        gfx_rect(g,15,15,10,690,WHITE);
+        gfx_rect(g,1255,15,10,690,WHITE);
+        gfx_rect(g,610,24,60,60,WHITE);
+        gfx_end(g);
+        return;
+    }
+    probe_hide_text=(stage==1);
+#endif
     gfx_begin(g);
     background(g);
     header(g,d);
@@ -245,6 +275,11 @@ void ui_render(Gfx *g,const Dashboard *d)
     hero(g,d);
     footer(g,d);
     overlay(g,d);
+#if PS25_PROBE
+    /* Diagnostic mode marker: orange square = shapes without text.
+       Cyan square = full scene with font draw calls. */
+    gfx_rect(g,610,30,60,60,stage==1?C(255,145,12,128):ACCENT);
+#endif
     gfx_end(g);
 }
 void ui_action(Dashboard *d,unsigned int pressed,unsigned int held,
