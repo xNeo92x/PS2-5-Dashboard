@@ -394,3 +394,45 @@ profile and preserve the known-good 480p ELF on your USB stick.
 
 The SM64 work is valuable engineering prior art. No SM64 gameplay assets
 or SM64 source code have been copied into this dashboard.
+
+
+## Hardware feedback: SM64-style HIRES2 also corrupted (28 Oct 2026)
+
+The owner tested both `PS25-720p-hires2.ELF` and
+`PS25-probe720p-hires2.ELF` on a PS2 Fat with PixelFX Retro GEM Shiny.
+**Both still show the same lower-region corruption** as our direct
+720p and older 3-pass HIRES variants. Therefore, the successful 2-pass
+workaround from SM64's [issue #82](https://github.com/fgsfdsfgs/sm64-port/issues/82)
+and [PR #118](https://github.com/fgsfdsfgs/sm64-port/pull/118)
+does **not** establish a fix for this hardware/software combination.
+Do not claim 720p support works, or merge the experimental PR yet.
+
+**The minimal color-bar tests also exhibit the defect whenever the
+Retro GEM zoom reveals the previously cropped bottom of the frame.**
+This narrows the next investigation to GS framebuffer scanout/height,
+PixelFX input capture and vertical scaling, rather than glyphs, game
+assets or UI primitive rendering.
+
+**Next diagnostic steps require no new build:**
+
+1. On the existing `PS25-diag720p-double-pad.ELF`, open Retro GEM
+   `Video → Shift / Crop → Vertical Height`, note the original value,
+   and test whether adjusting the captured vertical height changes
+   the corrupt bottom region. There is independent PS2 Retro GEM
+   installer guidance to adjust *this exact setting* for certain
+   PS2 720p FMV problems:
+   https://www.oldskoolconsoles.com/product-page/kit-pixelfx-retrogem-hdmi-n64-ps1-ps2-basic-edition
+   Do not save over a known-working profile.
+2. Test **`PS25-diag720p-698.ELF`** and
+   **`PS25-diag720p-640.ELF`** (already in recent CI artifacts) from
+   the old FMCB uLaunchELF at nominal 1.500x Retro GEM zoom.
+   Examine the complete six-color area and the bottom green band.
+3. If 698/640 also fail and PixelFX height control does not help,
+   obtain a screenshot of Retro GEM `Video → Shift / Crop` and
+   its 720p input stats. Consider testing with a separate analog
+   component video connection (if available) to determine whether the
+   corruption exists *before* the HDMI mod's capture/scaler.
+
+A clean PS2 480p build remains the supported fallback. No firmware
+update, SSD writes, auto-boot changes or HDMI hardware modifications
+should be made based on these diagnostics alone.
