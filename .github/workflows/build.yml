@@ -1,0 +1,37 @@
+name: Build PS2 dashboard
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  catalog-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test the standalone catalog parser
+        run: make test
+
+  ps2-elf:
+    runs-on: ubuntu-latest
+    container: ghcr.io/ps2dev/ps2sdk-ports:latest
+    steps:
+      - name: Install native build tools
+        run: apk add --no-cache build-base git cmake pkgconf
+      - uses: actions/checkout@v4
+      - name: Provide gsKit
+        run: |
+          if [ ! -f "$PS2DEV/gsKit/lib/libgskit.a" ]; then
+            if [ ! -d "$PS2DEV/gsKit" ]; then
+              git clone --depth 1 https://github.com/ps2dev/gsKit.git "$PS2DEV/gsKit"
+            fi
+            make -C "$PS2DEV/gsKit" install
+          fi
+      - name: Compile normal 480p and multipass 720p builds
+        run: |
+          make MODE=480p
+          make MODE=720p
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PS2-5-experimental-ELFs
+          path: dist/*.ELF
