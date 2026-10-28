@@ -8,10 +8,10 @@ Runs on a **real PlayStation 2**, not on a PSP. Designed with the PS2 Fat, SATA 
 
 ## Features in this first revision
 
-- A dark navy/blue PS5-*inspired* horizontal tile menu, with original vector-like symbols and abstract animated waves.
+- An original dark navy/blue PS5-*inspired* layout: category tabs, horizontal game/app rail, prominent selection detail panel and procedural symbols. All text is width-clipped to tile bounds.
 - Games, Apps, and System tabs. Select with D-pad and shoulder buttons; automatic controller reconnect.
 - Custom 5x7 glyphs drawn as GS sprites at runtime; no texture allocation for the UI.
-- Two independent builds: **480p safe** (704×480, conventional gsKit; suitable for PCSX2) and **720p experimental** (1280×720, 16-bit gsKit 3-pass HIRES scanout; **real PS2 only**).
+- Three video backends: **480p** (704×480 normal gsKit), **720p direct** (1280×720, 16-bit double-buffered conventional gsKit), and **720p-hires** (legacy 3-pass gsKit HIRES retained as an experimental A/B test).
 - Manual read-only collection list at `mc0:/PS25/APPS.CFG` or `mc1:/PS25/APPS.CFG`.
 - Experimental **.ELF** launch attempts from memory cards or the ps2client `host:` device.
 - Exit to the stock PS2 browser; no changes to partitions, game ISOs, HDD settings, or PSBBN.
@@ -28,6 +28,8 @@ export PATH="$PS2DEV/bin:$PATH"
 make test
 make MODE=480p
 make MODE=720p
+# Optional: compare the unstable original high-res backend:
+make MODE=720p-hires
 ```
 
 Build results (if the toolchain is installed):
@@ -35,6 +37,8 @@ Build results (if the toolchain is installed):
 ```text
 dist/PS25-480p.ELF
 dist/PS25-720p.ELF
+# Optional experimental comparison:
+dist/PS25-720p-hires.ELF
 ```
 
 `make clean` removes only local build outputs. `make test` requires only a native C compiler and tests the catalog parser. GitHub Actions builds both ELF variants using PS2SDK and gsKit. The workflow artifacts are **build outputs, not hardware-tested releases**.
@@ -47,7 +51,7 @@ dist/PS25-720p.ELF
 4. Test pad navigation and video. For the 720p experiment, keep the 480p ELF available to recover from an unsupported HDMI mode.
 5. The Retro GEM Shiny can upscale a supported incoming mode to HDMI 1080p. If your television rejects 1440p, leave the Retro GEM output at 1080p; it does not mean the dashboard renders internally at 1080p.
 
-**Important 720p caveat:** The gsKit HIRES path only stores a fraction of the frame in GS eDRAM and relies on precisely timed multi-pass scanout. The official gsKit examples warn that PCSX2 only shows part of the image in this mode. Test `PS25-720p.ELF` on **real hardware**. If the image breaks, restart using `PS25-480p.ELF`. No video mode is persisted to the console.
+**720p hardware warning:** The original `PS25-720p-hires.ELF` uses a timing-sensitive, three-pass gsKit HIRES renderer and produced severe distortion on a PS2 Fat with Retro GEM Shiny. It is retained **only for diagnostic comparison**. The revised `PS25-720p.ELF` instead uses normal gsKit GS double-buffered 16-bit scanout, avoiding HIRES. Its two framebuffer allocations are approximately 3.75 MiB **including gsKit page alignment**, out of 4 MiB GS eDRAM. This is still a **hardware-untested replacement** and may not solve every PS2 model/HDMI issue. If picture breaks, switch back to `PS25-480p.ELF`; no video mode is persisted.
 
 ## Manual collection
 
@@ -111,7 +115,8 @@ launcher-specific reset.
 | `PS25-diag480p.ELF` | Green/teal background, green rectangle, white bars | Basic 480p video, still without IOP |
 | `PS25-demo480p.ELF` | PS5-like dashboard, no controller input | Full procedural UI with **NO IOP/pad/MC** |
 | `PS25-480p.ELF` | Same dashboard, now with controller input | IOP and pad initialization; memory card loads only when Square is pressed |
-| `PS25-720p.ELF` | Experimental high-resolution dashboard | Advanced multipass scanout; test only after 480p works |
+| `PS25-720p.ELF` | **NEW:** Standard double-buffered 720p dashboard | 16-bit direct framebuffer; no HIRES threads/passes; test after 480p works |
+| `PS25-720p-hires.ELF` | Original HIRES 720p (known to distort on test device) | Keep only as a comparison; not recommended for daily use |
 
 The first three test pictures run indefinitely. **There is no automatic reset
 in these diagnostic binaries.** You must use the physical Reset button when
@@ -136,3 +141,22 @@ Please report exactly which file showed colors, whether the picture stayed on
 screen, and whether the console visibly power-cycled/restarted or simply
 returned to the launcher. Do **not** overwrite the PSBBN SSD or install the
 experimental ELF as an autostart application.
+
+
+## PS2 Fat + Retro GEM Shiny hardware findings (October 2026)
+
+- 480p is **confirmed to launch and display** when run from an older uLaunchELF installed on a Free-MCBoot memory card.
+- The same older 480p build does **not** launch reliably from PSBBN's bundled uLaunchELF. The reason for the differing IOP/loader environment needs investigation.
+- Original three-pass HIRES 720p displayed corrupt text, a duplicated lower footer and lower-screen video noise. See: legacy `PS25-720p-hires.ELF`.
+- The **new direct 720p build** avoids HIRES entirely and uses normal 16-bit GS double buffering. It is **not yet verified on real hardware**.
+- Tile names now use width-bound truncation; the upper rail uses large PS5-inspired selectable tiles and a lower hero detail area.
+
+### Recommended A/B test order
+
+1. Keep the previously working 480p ELF on the USB stick as a fallback.
+2. Launch `PS25-480p.ELF` **from the older Free-MCBoot uLaunchELF**, to check the new layout.
+3. Launch the **new** `PS25-720p.ELF` by the same method. This build no longer uses multi-pass HIRES.
+4. If distortion remains, save a photo of the screen and report what it looks like, including whether the Retro GEM output is locked at 1080p.
+5. Do **not** auto-launch either build from PSBBN or replace your existing SATA SSD partition data.
+
+**Development branch:** `fix/boot-diagnostics-and-safe-init` (draft PR #3). This branch intentionally contains hardware diagnostics and UI changes that require user testing before merging into `main`.
