@@ -9,6 +9,7 @@ DIRECT720 := 0
 SINGLE720 := 0
 PROBE := 0
 DIAG_VIDEO := 0
+DIAG_PAD := 0
 ifeq ($(MODE),720p)
   HIRES := 0
   DIRECT720 := 1
@@ -52,6 +53,11 @@ else ifeq ($(MODE),diag720p-double)
   HIRES := 0
   DIAG := 1
   DIAG_VIDEO := 5
+else ifeq ($(MODE),diag720p-double-pad)
+  HIRES := 0
+  DIAG := 1
+  DIAG_VIDEO := 5
+  DIAG_PAD := 1
 else ifeq ($(MODE),diag720p-rgb32)
   HIRES := 0
   DIAG := 1
@@ -89,7 +95,7 @@ else
   SRCS := $(filter-out src/diag.c,$(wildcard src/*.c))
 endif
 EE_OBJS := $(patsubst src/%.c,build/$(MODE)/%.o,$(SRCS))
-EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_DIRECT720=$(DIRECT720) -DPS25_SINGLE720=$(SINGLE720) -DPS25_PROBE=$(PROBE) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO)
+EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_DIRECT720=$(DIRECT720) -DPS25_SINGLE720=$(SINGLE720) -DPS25_PROBE=$(PROBE) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO) -DPS25_DIAG_PAD=$(DIAG_PAD)
 EE_INCS += -I$(GSKIT)/include -I$(PS2SDK)/ports/include
 EE_LDFLAGS += -L$(GSKIT)/lib -L$(PS2SDK)/ports/lib
 EE_LIBS += -lgskit -ldmakit -lpad -lm
@@ -124,6 +130,7 @@ diagnostics:
 	$(MAKE) MODE=diag720p-scaled all
 	$(MAKE) MODE=diag720p-single all
 	$(MAKE) MODE=diag720p-double all
+	$(MAKE) MODE=diag720p-double-pad all
 	$(MAKE) MODE=diag720p-rgb32 all
 	$(MAKE) MODE=diag720p-16s all
 demo:
