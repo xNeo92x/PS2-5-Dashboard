@@ -256,3 +256,48 @@ To compile the staged probe locally using the ps2dev toolchain:
 The Retro GEM's OSD firmware version in the supplied photos is
 **3.15.25.4**; do not update firmware only to debug this problem without
 checking the official release notes and backing up your current profile.
+
+## Why the Retro GEM menu hotkey failed in colorbar tests
+
+The original `PS25-diag720p-double.ELF` was deliberately built with **no
+controller initialization or pad polling**. On a PS2, the Pixel FX Retro GEM
+menu hotkey can depend on seeing live controller transactions; if no game
+or application polls the controller, the button combo might not be detected.
+
+The default Pixel FX PS1/PS2 OSD combo is **L1 + R1 + D-pad Right + Circle**
+([official controller hotkeys](https://docs.pixelfx.co/GEM-Details.html)).
+If you have customized the shortcut, use your actual mapping instead.
+
+To test OSD access while looking at a **720p colorbar screen**, start
+`PS25-diag720p-double-pad.ELF` using the **older uLaunchELF from the FMCB
+memory card**. The test renders the normal six bars in 1280x720 16-bit
+double buffering, then starts `SIO2MAN`/`PADMAN` and polls controller port
+1 every frame. A small indicator near the upper left turns **green**
+when the PS2 has received valid controller data; **orange** means no valid
+pad report so far. A green indicator does not guarantee Pixel FX will
+recognize the OSD hotkey, but is a good sanity check.
+
+Open the Retro GEM OSD with the combo above and temporarily set the
+*Scaler → Zoom* to **1.500 / 1.500** with 16:9 and HDMI output at 1080p.
+For 1280x720 this gives a nominal 1920x1080 picture (subject to actual
+capture geometry and any overscan/crop offsets). Examine all **six**
+stripes, especially the bottom green one. Avoid saving a problematic
+profile; use **L1: Cancel** as shown in the Retro GEM OSD if appropriate.
+
+This *pad-enabled* diagnostic is intentionally separated from the
+no-pad version: it includes PS2 IOP drivers and can therefore expose
+a distinct IOP/launcher issue. It does not read or write the SSD.
+Exit with the PS2 Reset button.
+
+If the OSD hotkey remains unavailable, the official
+[Pixel FX web interface](https://docs.pixelfx.co/FX-Framework-WebUI.html)
+can be accessed from a browser **if the GEM has already been paired with
+Wi-Fi and its web UI credentials are known**; otherwise return to a
+controller-polling application to configure the GEM before launching a
+non-polling diagnostic.
+
+**Interpretation update:** The previous report that `diag720p-single`
+and `diag720p-double` were "clean" was based on a cropped 2.000x view.
+At least the bottom two of six bars were outside the screen, so
+the lower part of both 720p diagnostic images remains *unverified*.
+A 2.000x crop can hide corruption below the visible region.
