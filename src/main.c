@@ -106,6 +106,10 @@ int main(int argc,char **argv)
 #endif
 #if PS25_HIRES
     printf("PS25: legacy experimental HIRES 720p multipass\n");
+#elif PS25_MAGH_INTERLACED
+    printf("PS25: RIPPS2-style 640x540 GS frame, 1080i output MAGH=3\n");
+#elif PS25_MAGH_HD
+    printf("PS25: RIPPS2-style 640x720 GS framebuffer, 720p MAGH=2\n");
 #elif PS25_DIRECT720
     printf("PS25: direct double-buffered 720p 16-bit (no HIRES)\n");
 #else
