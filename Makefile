@@ -3,6 +3,7 @@
 # make MODE=720p (standard 16-bit double-buffered 720p, GS eDRAM)
 # make MODE=720p-hires (legacy 3-pass mode; A/B diagnostics only)
 MODE ?= 480p
+HIRES := 0
 DIAG := 0
 DEMO := 0
 DIRECT720 := 0
