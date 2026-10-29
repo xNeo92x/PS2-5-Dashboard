@@ -29,6 +29,21 @@ int gfx_init(Gfx *g)
     g->gs->Height = 720;
     g->gs->PSM = (PS25_HIRES_PASSES == 2) ? GS_PSM_CT16 : GS_PSM_CT16S;
     g->gs->PSMZ = (PS25_HIRES_PASSES == 2) ? GS_PSMZ_16 : GS_PSMZ_16S;
+#elif PS25_MAGH_HD
+    /* RIPPS2 build 75: 640 pixels wide drawn ONCE; GS CRTC MAGH
+       doubles the image width for 720p or triples it for 1080i.
+       Unlike the old 640x360 test, do NOT vertically magnify 720p. */
+#if PS25_MAGH_INTERLACED
+    g->gs->Mode = GS_MODE_DTV_1080I;
+    g->gs->Width = 640;
+    g->gs->Height = 540; /* interlaced FRAME: 540 lines per field */
+#else
+    g->gs->Mode = GS_MODE_DTV_720P;
+    g->gs->Width = 640;
+    g->gs->Height = 720;
+#endif
+    g->gs->PSM = GS_PSM_CT16S;
+    g->gs->PSMZ = GS_PSMZ_16S;
 #elif PS25_DIRECT720
     /* Standard GS double-buffered 720p: 2 * 1280 * aligned(720,64) * 2
        = 3.75 MiB. No texture RAM or Z-buffer required. */
@@ -45,7 +60,11 @@ int gfx_init(Gfx *g)
     g->gs->PSM = GS_PSM_CT16;
     g->gs->PSMZ = GS_PSMZ_16;
 #endif
+#if PS25_MAGH_INTERLACED
+    g->gs->Interlace = GS_INTERLACED;
+#else
     g->gs->Interlace = GS_NONINTERLACED;
+#endif
     g->gs->Field = GS_FRAME;
     g->gs->Dithering = GS_SETTING_ON;
     g->gs->DoubleBuffering = PS25_SINGLE720 ? GS_SETTING_OFF : GS_SETTING_ON;
