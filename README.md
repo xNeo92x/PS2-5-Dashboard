@@ -436,3 +436,69 @@ assets or UI primitive rendering.
 A clean PS2 480p build remains the supported fallback. No firmware
 update, SSD writes, auto-boot changes or HDMI hardware modifications
 should be made based on these diagnostics alone.
+
+
+## RIPPS2 one-pass horizontal magnification: 720p and 1080i (October 2026)
+
+The repo [akilluminati47/RIPPS2](https://github.com/akilluminati47/RIPPS2)
+provides an importantly **different** proven HD output architecture in
+[patch 0075](https://github.com/akilluminati47/RIPPS2/blob/main/elf/patches/0075-ripps2-build75-one-pass-hd-early-boot-sound-neutrino-show-args.patch).
+Unlike our 640×360 trial, RIPPS2 **preserves all 720 vertical scanlines**
+and lets the PS2 **GS display circuit (MAGH) double only the width**:
+
+| Mode | Internal GS render | Output signal | MAGH | Passes |
+|---|---|---|---:|---:|
+| 720p | 640x720 (16-bit CT16S) | 1280x720 progressive | 2x | 1 |
+| 1080i | 640x540 per interlaced FRAME field (16-bit CT16S) | 1920x1080 interlaced | 3x | 1 |
+
+It uses normal `gsKit_init_global` + `gsKit_init_screen`, double
+buffering, no Z-buffer and no HIRES pass-replay threads.
+The gsKit CRTC computes `MagH=(DW/Width)-1`:
+- 720p: `DW=1280`, `Width=640`, `MagH=1` (2 displayed pixels per stored pixel)
+- 1080i: `DW=1920`, `Width=640`, `MagH=2` (3 displayed pixels per stored pixel)
+
+A 640x720 CT16S framebuffer uses approximately 0.94 MiB after
+64-line alignment; **two occupy ~1.875 MiB**.
+For 1080i, 640x540 CT16S requires a 576-line allocation, about 0.70 MiB,
+~1.406 MiB for two. Actual draw dimensions are 640x720 and 640x540
+respectively: **neither is native per-pixel 1280x720 or 1920x1080
+rendering**. Vertical detail is retained for 720p, horizontal detail is
+reconstructed by display magnification.
+
+**New hardware experiments** (do not replace the existing PSBBN startup):
+
+| ELF | What it draws |
+| --- | --- |
+| `PS25-diag720p-magh.ELF` | Six colorbars, 640x720 CT16S, 720p 2x horizontal MAGH, double-buffered, PAD polling |
+| `PS25-diag720p-magh-ct16.ELF` | Same but CT16 standard layout instead of CT16S, to A/B test memory layout |
+| `PS25-720p-magh.ELF` | Full 720p output dashboard drawn at 640x720 in one pass |
+| `PS25-diag1080i-magh.ELF` | Six colorbars, 640x540 CT16S, output 1080i; PAD polling |
+| `PS25-1080i-magh.ELF` | Full 1080i output dashboard with GS magnification, interlaced; expect possible fine-text flicker |
+
+**Hardware test order** on PS2 Fat with Retro GEM Shiny:
+1. Always launch via the older uLaunchELF on your Free-MCBoot memory card.
+   Keep the already-working `PS25-480p.ELF` as a fallback.
+2. Run `PS25-diag720p-magh.ELF`. With 1080p output, set the GEM zoom
+   close to **1.500x** (temporary test); verify all six colorbars, including
+   the complete green bottom bar. Do not save bad scaler profiles.
+3. If colorbars are clean, run `PS25-720p-magh.ELF` and verify that the
+   full menu is visible and text doesn't duplicate in the lower part.
+4. If the first test is corrupt, compare
+   `PS25-diag720p-magh-ct16.ELF` to distinguish CT16S/CT16 address layouts.
+5. Only then, test `PS25-diag1080i-magh.ELF` and if it works,
+   `PS25-1080i-magh.ELF`. **1080i is interlaced**, and fine text
+   may flicker; the PixelFX GEM may deinterlace the input.
+6. For an external comparison, try the **official standalone RIPPS2 ELF**
+   from [RIPPS2 releases](https://github.com/akilluminati47/RIPPS2/releases).
+   Start it manually through FMCB/uLaunchELF, and change its display mode
+   *without enabling auto-boot, installation, HDD operations or write
+   features*. Whether its own 720p/1080i works on your particular
+   Retro GEM is relevant to separating GS rendering from HDMI capture.
+
+This is a **code-grounded alternative** to our previously unsuccessful
+1280x720 direct and 2/3-pass HIRES modes. Its use in RIPPS2 is documented,
+but **these new PS2-5 binaries remain untested on the owner's hardware**.
+Don't claim a confirmed fix until the user reports the output. No
+RIPPS2 game files, engine code, or proprietary PlayStation assets are
+bundled into our repo; only the public GS-mode configuration was
+reimplemented with our own code.
