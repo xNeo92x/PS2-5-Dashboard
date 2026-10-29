@@ -36,6 +36,8 @@ jobs:
           make MODE=720p-single
           make MODE=720p-magh
           make MODE=1080i-magh
+          make MODE=720p-magh-32
+          make MODE=1080i-magh-32
           make MODE=probe720p
           make MODE=720p-hires
           make MODE=720p-hires2
@@ -44,7 +46,7 @@ jobs:
         shell: sh
         run: |
           set -eu
-          for mode in diag480i diag576i diag480p diag720p-magh diag720p-magh-ct16 diag1080i-magh diag720p-scaled diag720p-single diag720p-double diag720p-double-pad diag720p-698 diag720p-704 diag720p-640 diag720p-480 diag720p-rgb32 diag720p-16s demo480p 480p 720p 720p-single 720p-magh 1080i-magh 720p-hires probe720p 720p-hires2 probe720p-hires2; do
+          for mode in diag480i diag576i diag480p diag720p-magh diag720p-magh-ct16 diag1080i-magh diag720p-magh-32 diag1080i-magh-32 diag720p-scaled diag720p-single diag720p-double diag720p-double-pad diag720p-698 diag720p-704 diag720p-640 diag720p-480 diag720p-rgb32 diag720p-16s demo480p 480p 720p 720p-single 720p-magh 1080i-magh 720p-hires probe720p 720p-hires2 probe720p-hires2; do
             elf="dist/PS25-$mode.ELF"
             test -s "$elf"
             signature="$(od -An -tx1 -N4 "$elf" | tr -d ' \\n')"
