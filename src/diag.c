@@ -68,7 +68,7 @@ int main(int argc,char **argv)
     gs->Interlace=GS_NONINTERLACED;
     gs->Field=GS_FRAME;
     w=704; h=480;
-#elif PS25_DIAG_VIDEO == 13
+#elif PS25_DIAG_VIDEO == 13 || PS25_DIAG_VIDEO == 16
     /* RIPPS2-style 1080i, GS FRAME -> only 540 active buffer rows. */
     gs->Mode=GS_MODE_DTV_1080I;
     gs->Interlace=GS_INTERLACED;
@@ -81,7 +81,7 @@ int main(int argc,char **argv)
 #if PS25_DIAG_VIDEO == 3
     /* Deliberate 640x360 framebuffer magnified 2x by the 720p CRTC. */
     w=640; h=360;
-#elif PS25_DIAG_VIDEO == 12 || PS25_DIAG_VIDEO == 14
+#elif PS25_DIAG_VIDEO == 12 || PS25_DIAG_VIDEO == 14 || PS25_DIAG_VIDEO == 15
     /* RIPPS2 one-pass 720p: horizontal 2x CRTC MAGH, full 720 rows. */
     w=640; h=720;
 #elif PS25_DIAG_VIDEO == 8
@@ -103,7 +103,7 @@ int main(int argc,char **argv)
 
     gs->Width=w;
     gs->Height=h;
-#if PS25_DIAG_VIDEO == 6
+#if PS25_DIAG_VIDEO == 6 || PS25_DIAG_VIDEO == 15 || PS25_DIAG_VIDEO == 16
     gs->PSM=GS_PSM_CT32;
 #elif PS25_DIAG_VIDEO == 7 || PS25_DIAG_VIDEO == 12 || PS25_DIAG_VIDEO == 13
     gs->PSM=GS_PSM_CT16S;
@@ -111,7 +111,7 @@ int main(int argc,char **argv)
     gs->PSM=GS_PSM_CT16;
 #endif
     gs->Dithering=GS_SETTING_OFF;
-#if PS25_DIAG_VIDEO == 5 || PS25_DIAG_VIDEO == 12 || PS25_DIAG_VIDEO == 13 || PS25_DIAG_VIDEO == 14
+#if PS25_DIAG_VIDEO == 5 || PS25_DIAG_VIDEO == 12 || PS25_DIAG_VIDEO == 13 || PS25_DIAG_VIDEO == 14 || PS25_DIAG_VIDEO == 15 || PS25_DIAG_VIDEO == 16
     gs->DoubleBuffering=GS_SETTING_ON;
 #else
     gs->DoubleBuffering=GS_SETTING_OFF;
