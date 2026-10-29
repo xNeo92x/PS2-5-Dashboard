@@ -502,3 +502,44 @@ Don't claim a confirmed fix until the user reports the output. No
 RIPPS2 game files, engine code, or proprietary PlayStation assets are
 bundled into our repo; only the public GS-mode configuration was
 reimplemented with our own code.
+
+## Optional 32-bit, no-dithering HD outputs (Oct 2026)
+
+The one-pass, 640-pixel-wide GS magnification strategy from
+[RIPPS2](https://github.com/akilluminati47/RIPPS2) also leaves enough
+graphics memory for **double-buffered 32-bit RGB**. These **new PS2-5
+variants** switch the actual GS framebuffer format from `GS_PSM_CT16S`
+to `GS_PSM_CT32` and turn dithering **OFF**. The existing 16-bit versions
+are unchanged for A/B comparisons.
+
+Using gsKit's actual framebuffer page alignment:
+
+| Video output | Internal render | 16-bit, two buffers | 32-bit, two buffers | 32-bit remaining GS eDRAM |
+| --- | --- | ---: | ---: | ---: |
+| 720p | 640×720 | 1.875 MiB | **3.59375 MiB** | **0.40625 MiB / 416 KiB** |
+| 1080i | 640×540 | 1.40625 MiB | **2.65625 MiB** | **1.34375 MiB** |
+
+These figures count the two GS framebuffer allocations, including gsKit
+block/page alignment, but **not future textures**. PS2-5's current
+primitives and procedural text do not require texture allocations, and
+the Z-buffer remains off. The 720p variant is very tight on VRAM and
+should not be used as the default if planned features need artwork or
+texture-based glyphs. CT32 stores 8-bit RGB plus an alpha channel; it
+does **not** increase spatial resolution. On-screen colors can have
+smoother gradients, without hardware dithering patterns.
+
+| ELF | Role |
+| --- | --- |
+| `PS25-diag720p-magh-32.ELF` | 720p 640×720, CT32 + double buffer, six bars, no dithering |
+| `PS25-720p-magh-32.ELF` | PS5-style dashboard using the same 720p mode |
+| `PS25-diag1080i-magh-32.ELF` | 1080i 640×540, CT32 + double buffer, six bars, no dithering |
+| `PS25-1080i-magh-32.ELF` | Dashboard using the same 1080i mode |
+
+**Hardware testing:** run the relevant diagnostic ELF first, then the
+dashboard. Launch from the **older, working Free-MCBoot uLaunchELF**;
+do not install as a PSBBN autostart or alter the SATA SSD. Compare with
+the matching `PS25-720p-magh.ELF` / `PS25-1080i-magh.ELF` 16-bit variants
+under identical PixelFX Retro GEM settings. No PS2 hardware verification
+has been performed yet. Importantly, this change **does not establish a
+fix for the prior lower-screen 720p image corruption**: it is designed
+primarily to improve color precision when the signal path is working.
