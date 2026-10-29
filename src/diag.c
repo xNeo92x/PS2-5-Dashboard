@@ -68,6 +68,12 @@ int main(int argc,char **argv)
     gs->Interlace=GS_NONINTERLACED;
     gs->Field=GS_FRAME;
     w=704; h=480;
+#elif PS25_DIAG_VIDEO == 13
+    /* RIPPS2-style 1080i, GS FRAME -> only 540 active buffer rows. */
+    gs->Mode=GS_MODE_DTV_1080I;
+    gs->Interlace=GS_INTERLACED;
+    gs->Field=GS_FRAME;
+    w=640; h=540;
 #else
     gs->Mode=GS_MODE_DTV_720P;
     gs->Interlace=GS_NONINTERLACED;
@@ -75,6 +81,9 @@ int main(int argc,char **argv)
 #if PS25_DIAG_VIDEO == 3
     /* Deliberate 640x360 framebuffer magnified 2x by the 720p CRTC. */
     w=640; h=360;
+#elif PS25_DIAG_VIDEO == 12 || PS25_DIAG_VIDEO == 14
+    /* RIPPS2 one-pass 720p: horizontal 2x CRTC MAGH, full 720 rows. */
+    w=640; h=720;
 #elif PS25_DIAG_VIDEO == 8
     /* The official gsKit modetest uses a visible 698-line 720p image. */
     w=1280; h=698;
@@ -96,13 +105,13 @@ int main(int argc,char **argv)
     gs->Height=h;
 #if PS25_DIAG_VIDEO == 6
     gs->PSM=GS_PSM_CT32;
-#elif PS25_DIAG_VIDEO == 7
+#elif PS25_DIAG_VIDEO == 7 || PS25_DIAG_VIDEO == 12 || PS25_DIAG_VIDEO == 13
     gs->PSM=GS_PSM_CT16S;
 #else
     gs->PSM=GS_PSM_CT16;
 #endif
     gs->Dithering=GS_SETTING_OFF;
-#if PS25_DIAG_VIDEO == 5
+#if PS25_DIAG_VIDEO == 5 || PS25_DIAG_VIDEO == 12 || PS25_DIAG_VIDEO == 13 || PS25_DIAG_VIDEO == 14
     gs->DoubleBuffering=GS_SETTING_ON;
 #else
     gs->DoubleBuffering=GS_SETTING_OFF;
@@ -114,9 +123,9 @@ int main(int argc,char **argv)
     gsKit_mode_switch(gs,GS_ONESHOT);
     gsKit_set_test(gs,GS_ZTEST_OFF);
 
-    printf("PS25 video diagnostic %d: %dx%d PSM=%d double=%d VRAM=%lu / 4194304 bytes\n",
-           PS25_DIAG_VIDEO,w,h,gs->PSM,gs->DoubleBuffering,
-           (unsigned long)gs->CurrentPointer);
+    printf("PS25 diag %d: framebuffer %dx%d, output %dx%d, MagH=%d MagV=%d, PSM=%d double=%d VRAM=%lu\n",
+           PS25_DIAG_VIDEO,w,h,gs->DW,gs->DH,gs->MagH,gs->MagV,
+           gs->PSM,gs->DoubleBuffering,(unsigned long)gs->CurrentPointer);
 
     colors[0]=GS_SETREG_RGBAQ(21,59,129,0x80,0);  /* dark blue */
     colors[1]=GS_SETREG_RGBAQ(34,106,213,0x80,0); /* saturated blue */
