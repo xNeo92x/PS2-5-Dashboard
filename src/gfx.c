@@ -23,11 +23,37 @@ int gfx_init(Gfx *g)
     if (!g->gs) return 0;
 
 #if PS25_HIRES
+    /* 2-pass follows the tested SM64 HD design; 3-pass is legacy diagnostic. */
     g->gs->Mode = GS_MODE_DTV_720P;
     g->gs->Width = 1280;
     g->gs->Height = 720;
-    g->gs->PSM = GS_PSM_CT16S;
+    g->gs->PSM = (PS25_HIRES_PASSES == 2) ? GS_PSM_CT16 : GS_PSM_CT16S;
+    g->gs->PSMZ = (PS25_HIRES_PASSES == 2) ? GS_PSMZ_16 : GS_PSMZ_16S;
+#elif PS25_MAGH_HD
+    /* RIPPS2 build 75: 640 pixels wide drawn ONCE; GS CRTC MAGH
+       doubles the image width for 720p or triples it for 1080i.
+       Unlike the old 640x360 test, do NOT vertically magnify 720p. */
+#if PS25_MAGH_INTERLACED
+    g->gs->Mode = GS_MODE_DTV_1080I;
+    g->gs->Width = 640;
+    g->gs->Height = 540; /* interlaced FRAME: 540 lines per field */
+#else
+    g->gs->Mode = GS_MODE_DTV_720P;
+    g->gs->Width = 640;
+    g->gs->Height = 720;
+#endif
+    /* MAGH 32-bit: two CT32 framebuffers fit the 4 MiB GS eDRAM
+       at 640x720 and 640x540; UI draws without VRAM textures or Z. */
+    g->gs->PSM = PS25_MAGH_32 ? GS_PSM_CT32 : GS_PSM_CT16S;
     g->gs->PSMZ = GS_PSMZ_16S;
+#elif PS25_DIRECT720
+    /* Standard GS double-buffered 720p: 2 * 1280 * aligned(720,64) * 2
+       = 3.75 MiB. No texture RAM or Z-buffer required. */
+    g->gs->Mode = GS_MODE_DTV_720P;
+    g->gs->Width = 1280;
+    g->gs->Height = 720;
+    g->gs->PSM = GS_PSM_CT16;
+    g->gs->PSMZ = GS_PSMZ_16;
 #else
     /* Separate, conventional 480p build: useful for PCSX2 and recovery. */
     g->gs->Mode = GS_MODE_DTV_480P;
@@ -36,15 +62,21 @@ int gfx_init(Gfx *g)
     g->gs->PSM = GS_PSM_CT16;
     g->gs->PSMZ = GS_PSMZ_16;
 #endif
+#if PS25_MAGH_INTERLACED
+    g->gs->Interlace = GS_INTERLACED;
+#else
     g->gs->Interlace = GS_NONINTERLACED;
+#endif
     g->gs->Field = GS_FRAME;
-    g->gs->Dithering = GS_SETTING_ON;
-    g->gs->DoubleBuffering = GS_SETTING_ON;
+    /* Dithering is only useful for 16-bit framebuffer storage.
+       CT32 provides 8 bits per RGB channel, so disable dithering. */
+    g->gs->Dithering = PS25_MAGH_32 ? GS_SETTING_OFF : GS_SETTING_ON;
+    g->gs->DoubleBuffering = PS25_SINGLE720 ? GS_SETTING_OFF : GS_SETTING_ON;
     g->gs->ZBuffering = GS_SETTING_OFF;
     g->gs->PrimAlphaEnable = GS_SETTING_ON;
 #if PS25_HIRES
     /* gsKit's high-resolution multipass scanout; REAL PS2 only. */
-    gsKit_hires_init_screen(g->gs, 3);
+    gsKit_hires_init_screen(g->gs, PS25_HIRES_PASSES);
 #else
     gsKit_init_screen(g->gs);
 #endif
@@ -63,14 +95,32 @@ u64 gfx_rgba(int r, int g, int b, int a)
 
 void gfx_begin(Gfx *g)
 {
+#if PS25_HIRES
+    /* HIRES queues must use primitives for background clearing. Use
+       exactly 1280/64 stripes: sm64-port #118 fixed an extra
+       "strips++" drawing outside the valid horizontal framebuffer.
+       No offscreen strip is ever drawn. */
+    for (int i=0; i<20; ++i)
+        gsKit_prim_sprite(g->gs, (float)(i*64), 0,
+                          (float)((i+1)*64), 720.0f, 0,
+                          gfx_rgba(3, 9, 23, 128));
+#else
     gsKit_clear(g->gs, gfx_rgba(3, 9, 23, 128));
+#endif
 }
 
 void gfx_end(Gfx *g)
 {
 #if PS25_HIRES
+#if PS25_HIRES_PASSES == 2
+    /* sm64-port PR #118: rate-limited 2-pass GS frame flip.
+       gsKit_hires_flip_ext exists in upstream gsKit PR #97 (merged).
+       Do not call gsKit_hires_sync separately in this mode. */
+    gsKit_hires_flip_ext(g->gs, GSFLIP_RATE_LIMIT_2);
+#else
     gsKit_hires_sync(g->gs);
     gsKit_hires_flip(g->gs);
+#endif
 #else
     gsKit_queue_exec(g->gs);
     gsKit_sync_flip(g->gs);
