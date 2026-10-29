@@ -42,7 +42,9 @@ int gfx_init(Gfx *g)
     g->gs->Width = 640;
     g->gs->Height = 720;
 #endif
-    g->gs->PSM = GS_PSM_CT16S;
+    /* MAGH 32-bit: two CT32 framebuffers fit the 4 MiB GS eDRAM
+       at 640x720 and 640x540; UI draws without VRAM textures or Z. */
+    g->gs->PSM = PS25_MAGH_32 ? GS_PSM_CT32 : GS_PSM_CT16S;
     g->gs->PSMZ = GS_PSMZ_16S;
 #elif PS25_DIRECT720
     /* Standard GS double-buffered 720p: 2 * 1280 * aligned(720,64) * 2
@@ -66,7 +68,9 @@ int gfx_init(Gfx *g)
     g->gs->Interlace = GS_NONINTERLACED;
 #endif
     g->gs->Field = GS_FRAME;
-    g->gs->Dithering = GS_SETTING_ON;
+    /* Dithering is only useful for 16-bit framebuffer storage.
+       CT32 provides 8 bits per RGB channel, so disable dithering. */
+    g->gs->Dithering = PS25_MAGH_32 ? GS_SETTING_OFF : GS_SETTING_ON;
     g->gs->DoubleBuffering = PS25_SINGLE720 ? GS_SETTING_OFF : GS_SETTING_ON;
     g->gs->ZBuffering = GS_SETTING_OFF;
     g->gs->PrimAlphaEnable = GS_SETTING_ON;
