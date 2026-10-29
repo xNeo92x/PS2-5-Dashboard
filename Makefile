@@ -9,12 +9,20 @@ DEMO := 0
 DIRECT720 := 0
 MAGH_HD := 0
 MAGH_INTERLACED := 0
+MAGH_32 := 0
 SINGLE720 := 0
 PROBE := 0
 HIRES_PASSES := 3
 DIAG_VIDEO := 0
 DIAG_PAD := 0
-ifeq ($(MODE),720p-magh)
+ifeq ($(MODE),720p-magh-32)
+  MAGH_HD := 1
+  MAGH_32 := 1
+else ifeq ($(MODE),1080i-magh-32)
+  MAGH_HD := 1
+  MAGH_INTERLACED := 1
+  MAGH_32 := 1
+else ifeq ($(MODE),720p-magh)
   MAGH_HD := 1
 else ifeq ($(MODE),1080i-magh)
   MAGH_HD := 1
@@ -58,6 +66,14 @@ else ifeq ($(MODE),diag480p)
   HIRES := 0
   DIAG := 1
   DIAG_VIDEO := 2
+else ifeq ($(MODE),diag720p-magh-32)
+  DIAG := 1
+  DIAG_VIDEO := 15
+  DIAG_PAD := 1
+else ifeq ($(MODE),diag1080i-magh-32)
+  DIAG := 1
+  DIAG_VIDEO := 16
+  DIAG_PAD := 1
 else ifeq ($(MODE),diag720p-magh)
   DIAG := 1
   DIAG_VIDEO := 12
@@ -144,7 +160,7 @@ else
   SRCS := $(filter-out src/diag.c,$(wildcard src/*.c))
 endif
 EE_OBJS := $(patsubst src/%.c,build/$(MODE)/%.o,$(SRCS))
-EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_HIRES_PASSES=$(HIRES_PASSES) -DPS25_DIRECT720=$(DIRECT720) -DPS25_MAGH_HD=$(MAGH_HD) -DPS25_MAGH_INTERLACED=$(MAGH_INTERLACED) -DPS25_SINGLE720=$(SINGLE720) -DPS25_PROBE=$(PROBE) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO) -DPS25_DIAG_PAD=$(DIAG_PAD)
+EE_CFLAGS += -std=gnu99 -O2 -Wall -Wextra -Isrc -DPS25_HIRES=$(HIRES) -DPS25_HIRES_PASSES=$(HIRES_PASSES) -DPS25_DIRECT720=$(DIRECT720) -DPS25_MAGH_HD=$(MAGH_HD) -DPS25_MAGH_INTERLACED=$(MAGH_INTERLACED) -DPS25_MAGH_32=$(MAGH_32) -DPS25_SINGLE720=$(SINGLE720) -DPS25_PROBE=$(PROBE) -DPS25_DEMO=$(DEMO) -DPS25_DIAG_VIDEO=$(DIAG_VIDEO) -DPS25_DIAG_PAD=$(DIAG_PAD)
 EE_INCS += -I$(GSKIT)/include -I$(PS2SDK)/ports/include
 EE_LDFLAGS += -L$(GSKIT)/lib -L$(PS2SDK)/ports/lib
 EE_LIBS += -lgskit -ldmakit -lpad -lm
@@ -160,7 +176,7 @@ include $(PS2SDK)/samples/Makefile.eeglobal
 endif
 endif
 
-.PHONY: clean test 480p 720p probe720p 720p-single 720p-hires 720p-hires2 probe720p-hires2 720p-magh 1080i-magh diagnostics demo
+.PHONY: clean test 480p 720p probe720p 720p-single 720p-hires 720p-hires2 probe720p-hires2 720p-magh 1080i-magh 720p-magh-32 1080i-magh-32 diagnostics demo
 480p:
 	$(MAKE) MODE=480p all
 720p:
@@ -169,6 +185,10 @@ endif
 	$(MAKE) MODE=720p-magh all
 1080i-magh:
 	$(MAKE) MODE=1080i-magh all
+720p-magh-32:
+	$(MAKE) MODE=720p-magh-32 all
+1080i-magh-32:
+	$(MAKE) MODE=1080i-magh-32 all
 
 probe720p:
 	$(MAKE) MODE=probe720p all
@@ -185,6 +205,8 @@ diagnostics:
 	$(MAKE) MODE=diag576i all
 	$(MAKE) MODE=diag480p all
 	$(MAKE) MODE=diag720p-magh all
+	$(MAKE) MODE=diag720p-magh-32 all
+	$(MAKE) MODE=diag1080i-magh-32 all
 	$(MAKE) MODE=diag720p-magh-ct16 all
 	$(MAKE) MODE=diag1080i-magh all
 	$(MAKE) MODE=diag720p-scaled all
